@@ -1,0 +1,11 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: auth-service
+
+jwt:
+  secret: "${JWT_SECRET:marketplace-minimalista-jwt-secret-key-256bits-seguro!!}"
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:900000}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}

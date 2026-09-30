@@ -1,0 +1,79 @@
+version: '3.8'
+
+networks:
+  microservices-net:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: order_db
+    ports:
+      - '5432:5432'
+    networks:
+      - microservices-net
+
+  mongodb:
+    image: mongo:6
+    container_name: mongodb
+    ports:
+      - '27017:27017'
+    networks:
+      - microservices-net
+
+  auth-service:
+    build:
+      context: ./auth-service
+    image: auth-image
+    container_name: auth-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SERVER_PORT=8083
+      - JWT_SECRET=marketplace-minimalista-jwt-secret-key-256bits-seguro!!
+      - JWT_ACCESS_TOKEN_EXPIRATION=900000
+      - JWT_REFRESH_TOKEN_EXPIRATION=604800000
+    networks:
+      - microservices-net
+
+  product-service:
+    build:
+      context: ./product-service
+    image: product-image
+    container_name: product-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVER_PORT=8081
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/product_db
+      - JWT_SECRET=marketplace-minimalista-jwt-secret-key-256bits-seguro!!
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=false
+      - EUREKA_CLIENT_FETCH_REGISTRY=false
+    depends_on:
+      - mongodb
+      - auth-service
+    networks:
+      - microservices-net
+
+  order-service:
+    build:
+      context: ./order-service
+    image: order-image
+    container_name: order-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SERVER_PORT=8082
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/order_db
+      - PRODUCT_SERVICE_URL=http://product-service:8081
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=false
+      - EUREKA_CLIENT_FETCH_REGISTRY=false
+    depends_on:
+      - postgres
+      - product-service
+    networks:
+      - microservices-net
